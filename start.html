@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MaxSalud - Inicio</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Segoe UI', sans-serif;
+        }
+        .status-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+            text-align: center;
+        }
+        .logo {
+            font-size: 4rem;
+            color: #667eea;
+            margin-bottom: 1rem;
+        }
+        .status {
+            margin: 2rem 0;
+            padding: 1.5rem;
+            border-radius: 10px;
+            background: #f8f9fa;
+        }
+        .status.checking {
+            border-left: 4px solid #ffc107;
+        }
+        .status.success {
+            border-left: 4px solid #28a745;
+        }
+        .status.error {
+            border-left: 4px solid #dc3545;
+        }
+        .btn-custom {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 10px;
+            font-weight: bold;
+            margin: 0.5rem;
+            transition: transform 0.3s;
+        }
+        .btn-custom:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+        .spinner-border {
+            width: 3rem;
+            height: 3rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="status-card">
+        <div class="logo">
+            <i class="bi bi-heart-pulse-fill"></i>
+        </div>
+        <h1 class="mb-4">MaxSalud</h1>
+        <p class="text-muted">Sistema de Gestión de Pacientes</p>
+        
+        <div id="statusSection" class="status checking">
+            <div class="spinner-border text-warning mb-3" role="status">
+                <span class="visually-hidden">Verificando...</span>
+            </div>
+            <h4>Verificando conexión con el servidor...</h4>
+            <p class="text-muted mb-0">http://localhost:8080</p>
+        </div>
+        
+        <div id="actionButtons" class="d-none">
+            <button onclick="window.location.href='index.html'" class="btn btn-custom">
+                <i class="bi bi-search-heart me-2"></i>
+                Ir a Búsqueda de Pacientes
+            </button>
+            <button onclick="window.location.href='test.html'" class="btn btn-custom btn-outline-secondary">
+                <i class="bi bi-tools me-2"></i>
+                Ir a Página de Pruebas
+            </button>
+        </div>
+        
+        <div id="errorInfo" class="d-none mt-3">
+            <div class="alert alert-warning">
+                <h6><i class="bi bi-exclamation-triangle me-2"></i>¿Servidor no disponible?</h6>
+                <ol class="text-start small">
+                    <li>Verifique que el backend esté corriendo</li>
+                    <li>Abra una terminal PowerShell en: <code>d:\Proyectos Mios\maxsalud</code></li>
+                    <li>Ejecute: <code>$env:TNS_ADMIN = "d:\Proyectos Mios\maxsalud\wallet"; .\mvnw.cmd spring-boot:run</code></li>
+                    <li>Espere a ver: "Started MaxsaludApplication"</li>
+                    <li>Recargue esta página</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:8080/api/reportes/buscar';
+        
+        async function checkServerStatus() {
+            try {
+                const response = await fetch(API_URL + '?edadDesde=0&edadHasta=120');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    showSuccess(data);
+                } else {
+                    showError('El servidor respondió con error: ' + response.status);
+                }
+            } catch (error) {
+                showError('No se pudo conectar al servidor');
+            }
+        }
+        
+        function showSuccess(data) {
+            const statusSection = document.getElementById('statusSection');
+            statusSection.className = 'status success';
+            statusSection.innerHTML = `
+                <i class="bi bi-check-circle text-success" style="font-size: 3rem;"></i>
+                <h4 class="mt-3 text-success">✓ Servidor conectado</h4>
+                <p class="text-muted">El backend está funcionando correctamente</p>
+                <div class="mt-3">
+                    <small class="text-muted">
+                        Total de pacientes en base de datos: <strong>${data.total || data.data?.length || 0}</strong>
+                    </small>
+                </div>
+            `;
+            document.getElementById('actionButtons').classList.remove('d-none');
+        }
+        
+        function showError(message) {
+            const statusSection = document.getElementById('statusSection');
+            statusSection.className = 'status error';
+            statusSection.innerHTML = `
+                <i class="bi bi-x-circle text-danger" style="font-size: 3rem;"></i>
+                <h4 class="mt-3 text-danger">✗ Servidor no disponible</h4>
+                <p class="text-muted">${message}</p>
+            `;
+            document.getElementById('errorInfo').classList.remove('d-none');
+            
+            // Reintentar en 5 segundos
+            setTimeout(() => {
+                statusSection.className = 'status checking';
+                statusSection.innerHTML = `
+                    <div class="spinner-border text-warning mb-3" role="status"></div>
+                    <h4>Reintentando conexión...</h4>
+                    <p class="text-muted mb-0">http://localhost:8080</p>
+                `;
+                checkServerStatus();
+            }, 5000);
+        }
+        
+        // Verificar al cargar
+        window.addEventListener('load', checkServerStatus);
+    </script>
+</body>
+</html>
